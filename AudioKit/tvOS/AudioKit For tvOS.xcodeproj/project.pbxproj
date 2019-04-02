@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3425223521E7F9950014B603 /* AKCoreSynth.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3425223321E7F9950014B603 /* AKCoreSynth.cpp */; };
-		3425223621E7F9950014B603 /* AKCoreSynth.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3425223421E7F9950014B603 /* AKCoreSynth.hpp */; };
+		3425223621E7F9950014B603 /* AKCoreSynth.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 3425223421E7F9950014B603 /* AKCoreSynth.hpp */; settings = {ATTRIBUTES = (Public, ); }; };
 		3425223D21E7F9B40014B603 /* AKSynthAudioUnit.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3425223921E7F9B40014B603 /* AKSynthAudioUnit.swift */; };
 		3425223E21E7F9B40014B603 /* AKSynth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3425223A21E7F9B40014B603 /* AKSynth.swift */; };
 		3425223F21E7F9B40014B603 /* AKSynthDSP.mm in Sources */ = {isa = PBXBuildFile; fileRef = 3425223B21E7F9B40014B603 /* AKSynthDSP.mm */; };
@@ -4967,6 +4967,7 @@
 				C49B1E7B204A0CFA009C7C8E /* OnePoleLPF.h in Headers */,
 				C49B1F17204A0CFB009C7C8E /* ugens.h in Headers */,
 				C49B1DD2204A0CFA009C7C8E /* test.h in Headers */,
+				3425223621E7F9950014B603 /* AKCoreSynth.hpp in Headers */,
 				EADFC42921506452003E5191 /* AKModulatedDelay.hpp in Headers */,
 				55E4F5321F57DB2D0088018A /* AKSamplerMetronome.h in Headers */,
 				C49B1E5E204A0CFA009C7C8E /* DelayAPF.h in Headers */,
@@ -5212,7 +5213,6 @@
 				C49B20FF204A0D57009C7C8E /* Blit.h in Headers */,
 				C49B20BD204A0D57009C7C8E /* BowTable.h in Headers */,
 				C424EC131FB4544E0091C46C /* AKChowningReverbDSP.hpp in Headers */,
-				3425223621E7F9950014B603 /* AKCoreSynth.hpp in Headers */,
 				C470CFCA201748E2003D1AFA /* AKKorgLowPassFilterDSP.hpp in Headers */,
 				C470CF8A201747C0003D1AFA /* AKDynamicRangeCompressorDSP.hpp in Headers */,
 				34F5A395205ED22D00290001 /* AKModulatedDelay_Typedefs.h in Headers */,
@@ -5342,12 +5342,12 @@
 			isa = PBXProject;
 			attributes = {
 				LastSwiftUpdateCheck = 0730;
-				LastUpgradeCheck = 0930;
+				LastUpgradeCheck = 1020;
 				ORGANIZATIONNAME = AudioKit;
 				TargetAttributes = {
 					C4BDE8381C12FFBC00207DA9 = {
 						CreatedOnToolsVersion = 7.2;
-						LastSwiftMigration = "";
+						LastSwiftMigration = 1020;
 					};
 					EAFECEE91F4EC31400A2B046 = {
 						CreatedOnToolsVersion = 9.0;
@@ -5357,10 +5357,11 @@
 			};
 			buildConfigurationList = C4BDE8331C12FFBC00207DA9 /* Build configuration list for PBXProject "AudioKit For tvOS" */;
 			compatibilityVersion = "Xcode 3.2";
-			developmentRegion = English;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = C4BDE82F1C12FFBC00207DA9;
 			productRefGroup = C4BDE83A1C12FFBC00207DA9 /* Products */;
@@ -6181,6 +6182,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				AUDIOKIT_VERSION = 4.4.0;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
@@ -6241,6 +6243,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				AUDIOKIT_VERSION = 4.4.0;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
 				CLANG_ENABLE_MODULES = YES;
@@ -6315,6 +6318,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
 				TVOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
@@ -6339,6 +6343,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = io.audiokit.AudioKit;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
 				TVOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
