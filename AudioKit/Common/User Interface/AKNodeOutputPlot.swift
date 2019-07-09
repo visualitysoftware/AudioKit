@@ -13,13 +13,16 @@ extension Notification.Name {
 }
 
 /// Plot the output from any node in an signal processing graph
+///
+/// By default this plots the output of AudioKit.output
 @IBDesignable
 open class AKNodeOutputPlot: EZAudioPlot {
 
     public var isConnected = false
+    public var isNotConnected: Bool { return !isConnected }
 
     internal func setupNode(_ input: AKNode?) {
-        if !isConnected {
+        if isNotConnected {
             input?.avAudioUnitOrNode.installTap(
                 onBus: 0,
                 bufferSize: bufferSize,
@@ -70,6 +73,8 @@ open class AKNodeOutputPlot: EZAudioPlot {
     internal var bufferSize: UInt32 = 1_024
 
     /// The node whose output to graph
+    ///
+    /// Defaults to AudioKit.output
     @objc open var node: AKNode? {
         willSet {
             pause()

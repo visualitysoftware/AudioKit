@@ -44,7 +44,7 @@ import AudioKit
     private var animationTimer: Timer?
     private var lastValue: Double = 0
     private func animateValue() {
-        if !plusButton.isPressed {
+        if plusButton.isPressed == false {
             if plusHeldCounter > 0 {
                 plusHeldCounter -= 1
             }
@@ -53,7 +53,7 @@ import AudioKit
                 plusHeldCounter += 1
             }
         }
-        if !minusButton.isPressed {
+        if minusButton.isPressed == false {
             if minusHeldCounter > 0 {
                 minusHeldCounter -= 1
             }
@@ -62,8 +62,10 @@ import AudioKit
                 minusHeldCounter += 1
             }
         }
-        let addValue = Double(increment * plusHeldCounter) * (linear ? 1 : Double(plusHeldCounter) / Double(maxPlusCounter))
-        let subValue = Double(increment * minusHeldCounter) * (linear ? 1 : Double(minusHeldCounter) / Double(maxMinusCounter))
+        let addValue = Double(increment * plusHeldCounter) *
+            (linear ? 1 : Double(plusHeldCounter) / Double(maxPlusCounter))
+        let subValue = Double(increment * minusHeldCounter) *
+            (linear ? 1 : Double(minusHeldCounter) / Double(maxMinusCounter))
         currentValue = originalValue + addValue - subValue
         callbackOnChange()
         lastValue = currentValue
@@ -107,21 +109,25 @@ import AudioKit
         minimum += diff
     }
     override internal func setupButtons(frame: CGRect) {
-        plusButton = AKButton(title: "+", frame: frame, callback: {_ in
-            self.doPlusActionHit()
-            self.touchBeganCallback()
+        plusButton = AKButton(title: "+", frame: frame, callback: { [weak self] _ in
+            guard let strongSelf = self else { return }
+            strongSelf.doPlusActionHit()
+            strongSelf.touchBeganCallback()
         })
-        minusButton = AKButton(title: "-", frame: frame, callback: {_ in
-            self.doMinusActionHit()
-            self.touchBeganCallback()
+        minusButton = AKButton(title: "-", frame: frame, callback: { [weak self]  _ in
+            guard let strongSelf = self else { return }
+            strongSelf.doMinusActionHit()
+            strongSelf.touchBeganCallback()
         })
-        plusButton.releaseCallback = {_ in
-            self.doPlusActionRelease()
-            self.touchEndedCallback()
+        plusButton.releaseCallback = { [weak self] _ in
+            guard let strongSelf = self else { return }
+            strongSelf.doPlusActionRelease()
+            strongSelf.touchEndedCallback()
         }
-        minusButton.releaseCallback = {_ in
-            self.doMinusActionRelease()
-            self.touchEndedCallback()
+        minusButton.releaseCallback = { [weak self] _ in
+            guard let strongSelf = self else { return }
+            strongSelf.doMinusActionRelease()
+            strongSelf.touchEndedCallback()
         }
         plusButton.font = buttonFont!
         minusButton.font = buttonFont!
@@ -137,7 +143,21 @@ import AudioKit
     required public init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
     }
-    public override init(text: String, value: Double, minimum: Double, maximum: Double, increment: Double, frame: CGRect, showsValue: Bool = true, callback: @escaping (Double) -> Void) {
-        super.init(text: text, value: value, minimum: minimum, maximum: maximum, increment: increment, frame: frame, showsValue: showsValue, callback: callback)
+    public override init(text: String,
+                         value: Double,
+                         minimum: Double,
+                         maximum: Double,
+                         increment: Double,
+                         frame: CGRect,
+                         showsValue: Bool = true,
+                         callback: @escaping (Double) -> Void) {
+        super.init(text: text,
+                   value: value,
+                   minimum: minimum,
+                   maximum: maximum,
+                   increment: increment,
+                   frame: frame,
+                   showsValue: showsValue,
+                   callback: callback)
     }
 }

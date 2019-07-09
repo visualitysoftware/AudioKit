@@ -89,13 +89,22 @@ import UIKit
     }
     private func genStackViews(rect: CGRect) {
         let borderWidth = minusButton!.borderWidth
-        label.frame = CGRect(x: rect.origin.x + borderWidth, y: rect.origin.y, width: rect.width, height: rect.height * 0.3)
+        label.frame = CGRect(x: rect.origin.x + borderWidth,
+                             y: rect.origin.y,
+                             width: rect.width,
+                             height: rect.height * 0.3)
         label.text = text
         label.textAlignment = .left
-        valueLabel?.frame = CGRect(x: rect.origin.x - borderWidth, y: rect.origin.y, width: rect.width, height: rect.height * 0.3)
+        valueLabel?.frame = CGRect(x: rect.origin.x - borderWidth,
+                                   y: rect.origin.y,
+                                   width: rect.width,
+                                   height: rect.height * 0.3)
         valueLabel?.text = "\(currentValue)"
         valueLabel?.textAlignment = .right
-        buttons.frame = CGRect(x: rect.origin.x, y: rect.origin.y + label.frame.height, width: rect.width, height: rect.height * 0.7)
+        buttons.frame = CGRect(x: rect.origin.x,
+                               y: rect.origin.y + label.frame.height,
+                               width: rect.width,
+                               height: rect.height * 0.7)
     }
     private func generateUIComponents(frame: CGRect) {
         //frame will be overridden w draw function
@@ -134,19 +143,23 @@ import UIKit
     }
     internal func setupButtons(frame: CGRect) {
         let buttonFrame = CGRect(x: 0, y: 0, width: frame.width / 2, height: frame.height)
-        plusButton = AKButton(title: "+", frame: buttonFrame, callback: {_ in
-            self.doPlusAction()
-            self.touchBeganCallback()
+        plusButton = AKButton(title: "+", frame: buttonFrame, callback: { [weak self] _ in
+            guard let strongSelf = self else { return }
+            strongSelf.doPlusAction()
+            strongSelf.touchBeganCallback()
         })
-        plusButton.releaseCallback = {_ in
-            self.touchEndedCallback()
+        plusButton.releaseCallback = { [weak self] _ in
+            guard let strongSelf = self else { return }
+            strongSelf.touchEndedCallback()
         }
-        minusButton = AKButton(title: "-", frame: buttonFrame, callback: {_ in
-            self.doMinusAction()
-            self.touchBeganCallback()
+        minusButton = AKButton(title: "-", frame: buttonFrame, callback: { [weak self] _ in
+            guard let strongSelf = self else { return }
+            strongSelf.doMinusAction()
+            strongSelf.touchBeganCallback()
         })
-        minusButton.releaseCallback = {_ in
-            self.touchEndedCallback()
+        minusButton.releaseCallback = { [weak self] _ in
+            guard let strongSelf = self else { return }
+            strongSelf.touchEndedCallback()
         }
         plusButton.font = buttonFont!
         minusButton.font = buttonFont!
