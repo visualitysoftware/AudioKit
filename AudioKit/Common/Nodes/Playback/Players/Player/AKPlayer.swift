@@ -76,7 +76,7 @@ public class AKPlayer: AKAbstractPlayer {
     // MARK: - Public Properties
 
     /// Completion handler to be called when Audio is done playing. The handler won't be called if
-    /// stop() is called while playing or when looping from a buffer.
+    /// stop() is called while playing or when looping from a buffer. Requires iOS 11, macOS 10.13.
     @objc public var completionHandler: AKCallback? {
         didSet {
             if #available(iOS 11, macOS 10.13, tvOS 11, *) {
@@ -110,6 +110,7 @@ public class AKPlayer: AKAbstractPlayer {
     }
 
     /// Will return whether the engine is rendering offline or realtime
+    /// Requires iOS 11, macOS 10.13 for offline rendering
     public override var renderingMode: RenderingMode {
         if #available(iOS 11, macOS 10.13, tvOS 11, *) {
             // AVAudioEngineManualRenderingMode
@@ -180,11 +181,11 @@ public class AKPlayer: AKAbstractPlayer {
     /// - Returns: Current time of the player in seconds while playing.
     @objc public var currentTime: Double {
         let currentDuration = (endTime - startTime == 0) ? duration : (endTime - startTime)
-        var normalisedPauseTime = 0.0
+        var normalizedPauseTime = 0.0
         if let pauseTime = pauseTime, pauseTime > startTime {
-            normalisedPauseTime = pauseTime - startTime
+            normalizedPauseTime = pauseTime - startTime
         }
-        let current = startTime + normalisedPauseTime + playerTime.truncatingRemainder(dividingBy: currentDuration)
+        let current = startTime + normalizedPauseTime + playerTime.truncatingRemainder(dividingBy: currentDuration)
 
         return current
     }
@@ -195,10 +196,9 @@ public class AKPlayer: AKAbstractPlayer {
         }
     }
 
+    /// Returns the audioFile's internal processingFormat
     @objc public var processingFormat: AVAudioFormat? {
-        guard let audioFile = audioFile else { return nil }
-        return AVAudioFormat(standardFormatWithSampleRate: audioFile.fileFormat.sampleRate,
-                             channels: audioFile.fileFormat.channelCount)
+        return audioFile?.processingFormat
     }
 
     // MARK: - Public Options
@@ -230,8 +230,6 @@ public class AKPlayer: AKAbstractPlayer {
             updateBuffer(force: true)
         }
     }
-
-    @objc public internal(set) var isPlaying: Bool = false
 
     // When buffered this will indicate if the buffer will be faded.
     // Fading the actual buffer data is necessary as loops when buffered don't fire
@@ -276,25 +274,25 @@ public class AKPlayer: AKAbstractPlayer {
         initialize(restartIfPlaying: false)
     }
 
-    internal override func initialize(restartIfPlaying: Bool = true) {
+    open override func initialize(restartIfPlaying: Bool = true) {
         let wasPlaying = isPlaying && restartIfPlaying
         if wasPlaying {
             pause()
         }
 
         if mixer.engine == nil {
-            AudioKit.engine.attach(mixer)
+            AKManager.engine.attach(mixer)
         }
 
         if playerNode.engine == nil {
-            AudioKit.engine.attach(playerNode)
+            AKManager.engine.attach(playerNode)
         } else {
             playerNode.disconnectOutput()
         }
 
         if let faderNode = super.faderNode {
             if faderNode.avAudioUnitOrNode.engine == nil {
-                AudioKit.engine.attach(faderNode.avAudioUnitOrNode)
+                AKManager.engine.attach(faderNode.avAudioUnitOrNode)
             } else {
                 faderNode.disconnectOutput()
             }
@@ -310,12 +308,15 @@ public class AKPlayer: AKAbstractPlayer {
     }
 
     internal func connectNodes() {
-        guard let processingFormat = processingFormat else { return }
+        guard let processingFormat = processingFormat else {
+            AKLog("Error: the audioFile processingFormat is nil, so nothing can be connected.")
+            return
+        }
         if let faderNode = super.faderNode {
-            AudioKit.connect(playerNode, to: faderNode.avAudioUnitOrNode, format: processingFormat)
-            AudioKit.connect(faderNode.avAudioUnitOrNode, to: mixer, format: processingFormat)
+            AKManager.connect(playerNode, to: faderNode.avAudioUnitOrNode, format: processingFormat)
+            AKManager.connect(faderNode.avAudioUnitOrNode, to: mixer, format: processingFormat)
         } else {
-            AudioKit.connect(playerNode, to: mixer, format: processingFormat)
+            AKManager.connect(playerNode, to: mixer, format: processingFormat)
         }
     }
 
@@ -365,6 +366,11 @@ public class AKPlayer: AKAbstractPlayer {
 
     // MARK: - Play
 
+    /// Play entire file right now
+    @objc public override func play() {
+        play(from: startTime, to: endTime, at: nil, hostTime: nil)
+    }
+
     /// Play using full options. Last in the convenience play chain, all play() commands will end up here
     // Placed in main class to be overriden in subclasses if needed.
     public func play(from startingTime: Double, to endingTime: Double, at audioTime: AVAudioTime?, hostTime: UInt64?) {
@@ -399,6 +405,11 @@ public class AKPlayer: AKAbstractPlayer {
         pauseTime = nil
     }
 
+    /// Stop playback and cancel any pending scheduled playback or completion events
+    @objc public override func stop() {
+        stopCompletion()
+    }
+
     // MARK: - Deinit
 
     /// Dispose the audio file, buffer and nodes and release resources.
@@ -408,7 +419,7 @@ public class AKPlayer: AKAbstractPlayer {
         super.detach() // get rid of the faderNode
         audioFile = nil
         buffer = nil
-        AudioKit.detach(nodes: [mixer, playerNode])
+        AKManager.detach(nodes: [mixer, playerNode])
     }
 
     @objc deinit {

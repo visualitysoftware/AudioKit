@@ -61,6 +61,12 @@
            duration:(double)duration {
     _kernel.addMIDINote(number, velocity, beat, duration);
 }
+-(void)removeEvent:(double)beat {
+    _kernel.removeEventAt(beat);
+}
+-(void)removeNote:(double)beat {
+    _kernel.removeNoteAt(beat);
+}
 -(void)setLoopCallback:(AKCCallback)callback {
     _kernel.loopCallback = callback;
 }
@@ -71,7 +77,7 @@
     _kernel.stopPlayingNotes();
 }
 -(void)rewind {
-//    _kernel.rewind();
+    _kernel.seekTo(0.0);
 }
 -(void)seekTo:(double)seekPosition {
     _kernel.seekTo(seekPosition);

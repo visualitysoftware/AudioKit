@@ -58,7 +58,7 @@ open class AKClipPlayer: AKNode {
             do {
                 try setClips(clips: newValue)
             } catch {
-                AKLog(error)
+                AKLog(error.localizedDescription)
             }
         }
     }
@@ -106,16 +106,16 @@ open class AKClipPlayer: AKNode {
             self.init()
             _clips = validatedClips
         } catch {
-            AKLog(error)
+            AKLog(error.localizedDescription)
             return nil
         }
     }
     // swiftlint:enable force_cast
 
     public override init() {
-        AudioKit.engine.attach(playerNode)
-        AudioKit.engine.attach(mixer)
-        AudioKit.engine.connect(playerNode, to: mixer)
+        AKManager.engine.attach(playerNode)
+        AKManager.engine.attach(mixer)
+        AKManager.engine.connect(playerNode, to: mixer)
         super.init(avAudioNode: mixer, attach: false)
     }
 

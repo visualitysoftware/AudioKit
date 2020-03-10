@@ -78,7 +78,7 @@ open class AKSequencerTrack: AKNode, AKComponent {
             strongSelf.internalAU = avAudioUnit.auAudioUnit as? AKAudioUnitType
         }
 
-        AudioKit.internalConnections.append(self)
+        AKManager.internalConnections.append(self)
     }
 
     /// Initialize the track with a target node
@@ -151,6 +151,14 @@ open class AKSequencerTrack: AKNode, AKComponent {
         if let status = event.status, event.data.count > 2 {
             add(status: status, data1: event.data[1], data2: event.data[2], position: position)
         }
+    }
+
+    open func removeEvent(at position: Double) {
+        internalAU?.removeEvent(position)
+    }
+
+    open func removeNote(at position: Double) {
+        internalAU?.removeNote(position)
     }
 
     /// Remove the notes in the track

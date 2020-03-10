@@ -9,8 +9,8 @@ import UIKit
 import AudioKit
 
 /// Delegate for keyboard events
-@objc public protocol AKKeyboardDelegate: class {
-    /// Note on evenets
+@objc public protocol AKKeyboardDelegate: AnyObject {
+    /// Note on events
     func noteOn(note: MIDINoteNumber)
     /// Note off events
     func noteOff(note: MIDINoteNumber)
@@ -18,7 +18,7 @@ import AudioKit
 
 /// Clickable keyboard mainly used for AudioKit playgrounds
 @IBDesignable open class AKKeyboardView: UIView, AKMIDIListener {
-
+    //swiftlint:disable
     /// Number of octaves displayed at once
     @IBInspectable open var octaveCount: Int = 2
 
@@ -355,7 +355,6 @@ import AudioKit
         return CGSize(width: oneOctaveSize.width / (4 * 7), height: oneOctaveSize.height * topKeyHeightRatio)
     }
 
-    // swiftlint:disable variable_name
     func whiteKeyX(_ n: Int, octaveNumber: Int) -> CGFloat {
         return CGFloat(n) * whiteKeySize.width + xOffset + oneOctaveSize.width * CGFloat(octaveNumber)
     }

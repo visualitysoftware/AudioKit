@@ -32,6 +32,7 @@ struct AKCoreSampler::InternalData {
     
     AudioKitCore::ADSREnvelopeParameters adsrEnvelopeParameters;
     AudioKitCore::ADSREnvelopeParameters filterEnvelopeParameters;
+    AudioKitCore::ADSREnvelopeParameters pitchEnvelopeParameters;
     
     // table of voice resources
     AudioKitCore::SamplerVoice voice[MAX_POLYPHONY];
@@ -61,6 +62,7 @@ AKCoreSampler::AKCoreSampler()
 , cutoffEnvelopeStrength(20.0f)
 , filterEnvelopeVelocityScaling(0.0f)
 , linearResonance(0.5f)
+, pitchADSRSemitones(0.0f)
 , loopThruRelease(false)
 , stoppingAllVoices(false)
 , data(new InternalData)
@@ -70,6 +72,7 @@ AKCoreSampler::AKCoreSampler()
     {
         pVoice->adsrEnvelope.pParameters = &data->adsrEnvelopeParameters;
         pVoice->filterEnvelope.pParameters = &data->filterEnvelopeParameters;
+        pVoice->pitchEnvelope.pParameters = &data->pitchEnvelopeParameters;
         pVoice->noteFrequency = 0.0f;
         pVoice->glideSecPerOctave = &glideRate;
     }
@@ -88,6 +91,7 @@ int AKCoreSampler::init(double sampleRate)
     currentSampleRate = (float)sampleRate;
     data->adsrEnvelopeParameters.updateSampleRate((float)(sampleRate/AKCORESAMPLER_CHUNKSIZE));
     data->filterEnvelopeParameters.updateSampleRate((float)(sampleRate/AKCORESAMPLER_CHUNKSIZE));
+    data->pitchEnvelopeParameters.updateSampleRate((float)(sampleRate/AKCORESAMPLER_CHUNKSIZE));
     data->vibratoLFO.waveTable.sinusoid();
     data->vibratoLFO.init(sampleRate/AKCORESAMPLER_CHUNKSIZE, 5.0f);
     
@@ -134,6 +138,10 @@ void AKCoreSampler::loadSampleData(AKSampleDataDescriptor& sdd)
     pBuf->noteNumber = sdd.sampleDescriptor.noteNumber;
     pBuf->noteFrequency = sdd.sampleDescriptor.noteFrequency;
     
+    // Handle rare case where loopEndPoint is 0 (due to being uninitialized)
+    if (sdd.sampleDescriptor.loopEndPoint == 0.0f)
+        sdd.sampleDescriptor.loopEndPoint = float(sdd.sampleCount - 1);
+
     if (sdd.sampleDescriptor.startPoint > 0.0f) pBuf->startPoint = sdd.sampleDescriptor.startPoint;
     if (sdd.sampleDescriptor.endPoint > 0.0f)   pBuf->endPoint = sdd.sampleDescriptor.endPoint;
     
@@ -146,6 +154,10 @@ void AKCoreSampler::loadSampleData(AKSampleDataDescriptor& sdd)
         else pBuf->loopStartPoint = pBuf->endPoint * sdd.sampleDescriptor.loopStartPoint;
         if (sdd.sampleDescriptor.loopEndPoint > 1.0f) pBuf->loopEndPoint = sdd.sampleDescriptor.loopEndPoint;
         else pBuf->loopEndPoint = pBuf->endPoint * sdd.sampleDescriptor.loopEndPoint;
+
+        // Clamp loop endpoints to valid range
+        if (pBuf->loopStartPoint < pBuf->startPoint) pBuf->loopStartPoint = pBuf->startPoint;
+        if (pBuf->loopEndPoint > pBuf->endPoint) pBuf->loopEndPoint = pBuf->endPoint;
     }
 }
 
@@ -422,7 +434,8 @@ void AKCoreSampler::render(unsigned channelCount, unsigned sampleCount, float *o
         {
             if (stoppingAllVoices ||
                 pVoice->prepToGetSamples(sampleCount, masterVolume, pitchDev, cutoffMul, keyTracking,
-                                         cutoffEnvelopeStrength, filterEnvelopeVelocityScaling, linearResonance) ||
+                                         cutoffEnvelopeStrength, filterEnvelopeVelocityScaling, linearResonance,
+                                         pitchADSRSemitones) ||
                 (pVoice->getSamples(sampleCount, pOutLeft, pOutRight) && allowSampleRunout))
             {
                 stopNote(nn, true);
@@ -517,4 +530,50 @@ void  AKCoreSampler::setFilterReleaseDurationSeconds(float value)
 float AKCoreSampler::getFilterReleaseDurationSeconds(void)
 {
     return data->filterEnvelopeParameters.getReleaseDurationSeconds();
+}
+
+
+void  AKCoreSampler::setPitchAttackDurationSeconds(float value)
+{
+    data->pitchEnvelopeParameters.setAttackDurationSeconds(value);
+    for (int i = 0; i < MAX_POLYPHONY; i++) data->voice[i].updatePitchAdsrParameters();
+}
+
+float AKCoreSampler::getPitchAttackDurationSeconds(void)
+{
+    return data->pitchEnvelopeParameters.getAttackDurationSeconds();
+}
+
+void  AKCoreSampler::setPitchDecayDurationSeconds(float value)
+{
+    data->pitchEnvelopeParameters.setDecayDurationSeconds(value);
+    for (int i = 0; i < MAX_POLYPHONY; i++) data->voice[i].updatePitchAdsrParameters();
+}
+
+float AKCoreSampler::getPitchDecayDurationSeconds(void)
+{
+    return data->pitchEnvelopeParameters.getDecayDurationSeconds();
+}
+
+void  AKCoreSampler::setPitchSustainFraction(float value)
+{
+    printf("setting pitch sustain level to %f\n", value);
+    data->pitchEnvelopeParameters.sustainFraction = value;
+    for (int i = 0; i < MAX_POLYPHONY; i++) data->voice[i].updatePitchAdsrParameters();
+}
+
+float AKCoreSampler::getPitchSustainFraction(void)
+{
+    return data->pitchEnvelopeParameters.sustainFraction;
+}
+
+void  AKCoreSampler::setPitchReleaseDurationSeconds(float value)
+{
+    data->pitchEnvelopeParameters.setReleaseDurationSeconds(value);
+    for (int i = 0; i < MAX_POLYPHONY; i++) data->voice[i].updatePitchAdsrParameters();
+}
+
+float AKCoreSampler::getPitchReleaseDurationSeconds(void)
+{
+    return data->pitchEnvelopeParameters.getReleaseDurationSeconds();
 }

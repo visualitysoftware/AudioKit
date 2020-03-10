@@ -16,28 +16,28 @@ open class AKSettings: NSObject {
     /// to Longest: 2 power 12 samples (4096 samples = 92.9 ms @ 44100 Hz)
     @objc public enum BufferLength: Int {
 
-        /// Shortest
+        /// Shortest: 32 samples = 0.7 ms @ 44100 kz
         case shortest = 5
 
-        /// Very Short
+        /// Very Short: 64 samples
         case veryShort = 6
 
-        /// Short
+        /// Short: 128 samples
         case short = 7
 
-        /// Medium
+        /// Medium: 256 samples
         case medium = 8
 
-        /// Long
+        /// Long: 512 samples
         case long = 9
 
-        /// Very Long
+        /// Very Long: 1024 samples
         case veryLong = 10
 
-        /// Huge
+        /// Huge: 2048 samples
         case huge = 11
 
-        /// Longest
+        /// Longest: 4096 samples = 92.9 ms @ 44100 Hz
         case longest = 12
 
         /// The buffer Length expressed as number of samples
@@ -66,13 +66,29 @@ open class AKSettings: NSObject {
             do {
                 try AVAudioSession.sharedInstance().setPreferredSampleRate(sampleRate)
             } catch {
-                print(error)
+                AKLog("Could not set preferred sample rate to \(sampleRate) " + error.localizedDescription, log: OSLog.settings, type: .error)
             }
             #else
             //nothing for macOS
             #endif
         }
     }
+
+    #if !os(macOS)
+    /// Whether haptics and system sounds are muted while a microhpone is setup or recording is active
+    @objc public static var allowHapticsAndSystemSoundsDuringRecording: Bool = false {
+        didSet {
+            if #available(iOS 13.0, tvOS 13.0, *) {
+                do {
+                    try AVAudioSession.sharedInstance().setAllowHapticsAndSystemSoundsDuringRecording(allowHapticsAndSystemSoundsDuringRecording)
+                } catch {
+                    AKLog("Could not set allow haptics to \(allowHapticsAndSystemSoundsDuringRecording)" +
+                        error.localizedDescription, log: OSLog.settings, type: .error)
+                }
+            }
+        }
+    }
+    #endif
 
     /// Number of audio channels: 2 for stereo, 1 for mono
     @objc public static var channelCount: UInt32 = 2
@@ -82,6 +98,9 @@ open class AKSettings: NSObject {
 
     /// Whether to allow audio playback to override the mute setting
     @objc public static var playbackWhileMuted: Bool = false
+
+    /// Whether we will allow our audio to mix with other applications
+    @objc public static var mixWithOthers: Bool  = true
 
     /// Global audio format AudioKit will default to
     @objc public static var audioFormat: AVAudioFormat {
@@ -122,7 +141,7 @@ open class AKSettings: NSObject {
     /// will query the hardware.
     @objc public static var ioBufferDuration: Double {
         set {
-            let node = AudioKit.engine.outputNode
+            let node = AKManager.engine.outputNode
             guard let audioUnit = node.audioUnit else { return }
             let samplerate = node.outputFormat(forBus: 0).sampleRate
             var frames = UInt32(round(newValue * samplerate))
@@ -134,11 +153,11 @@ open class AKSettings: NSObject {
                                               &frames,
                                               UInt32(MemoryLayout<UInt32>.size))
             if status != 0 {
-                AKLog("error in set ioBufferDuration status \(status)")
+                AKLog("error in set ioBufferDuration status \(status)", log: OSLog.settings, type: .error)
             }
         }
         get {
-            let node = AudioKit.engine.outputNode
+            let node = AKManager.engine.outputNode
             guard let audioUnit = node.audioUnit else { return 0 }
             let sampleRate = node.outputFormat(forBus: 0).sampleRate
             var frames = UInt32()
@@ -150,7 +169,7 @@ open class AKSettings: NSObject {
                                               &frames,
                                               &propSize)
             if status != 0 {
-                AKLog("error in get ioBufferDuration status \(status)")
+                AKLog("error in get ioBufferDuration status \(status)", log: OSLog.settings, type: .error)
             }
             return Double(frames) / sampleRate
         }
@@ -165,7 +184,7 @@ open class AKSettings: NSObject {
                 try AVAudioSession.sharedInstance().setPreferredIOBufferDuration(newValue)
 
             } catch {
-                AKLog(error)
+                AKLog("Could not set the preferred IO buffer duration to \(newValue): \(error)", log: OSLog.settings, type: .error)
             }
         }
         get {
@@ -195,7 +214,7 @@ open class AKSettings: NSObject {
     /// If set to false, AudioKit will not handle the AVAudioSession route change
     /// notification (AVAudioSessionRouteChange) and will not restart the AVAudioEngine
     /// instance when such notifications are posted. The developer can instead subscribe
-    /// to these notifications and restart AudioKit after rebuiling their audio chain.
+    /// to these notifications and restart AudioKit after rebuilding their audio chain.
     @objc public static var enableRouteChangeHandling: Bool = true
 
     /// If set to false, AudioKit will not handle the AVAudioSession category change
@@ -205,6 +224,7 @@ open class AKSettings: NSObject {
     @objc public static var enableCategoryChangeHandling: Bool = true
 
     /// Turn off AudioKit logging
+    /// TODO: With new AKLog, we have the ability to do a lot better than just a boolean here
     @objc public static var enableLogging: Bool = true
 
     #if !os(macOS)
@@ -243,8 +263,18 @@ extension AKSettings {
                 }
             }
         } catch let error as NSError {
-            AKLog("Error: \(error) Cannot set AVAudioSession Category to \(category) with options: \(options)")
+            AKLog("Cannot set AVAudioSession Category to \(category) with options: \(options) " + error.localizedDescription,
+                  log: OSLog.settings, type: .error)
             throw error
+        }
+
+        // Core Haptics
+        do {
+            if #available(iOS 13.0, tvOS 13.0, *) {
+                try session.setAllowHapticsAndSystemSoundsDuringRecording(allowHapticsAndSystemSoundsDuringRecording)
+            }
+        } catch {
+            AKLog("Could not allow haptics: \(error)", log: OSLog.settings, type: .error)
         }
 
         // Preferred IO Buffer Duration
@@ -253,9 +283,9 @@ extension AKSettings {
                 try session.setPreferredIOBufferDuration(bufferLength.duration)
             }
         } catch let error as NSError {
-            AKLog("AKSettings Error: Cannot set Preferred IOBufferDuration to " +
-                "\(bufferLength.duration) ( = \(bufferLength.samplesCount) samples)")
-            AKLog("AKSettings Error: \(error))")
+            AKLog("Cannot set Preferred IO Buffer Duration to " +
+                "\(bufferLength.duration) ( = \(bufferLength.samplesCount) samples) due to " +
+                error.localizedDescription, log: OSLog.settings, type: .error)
             throw error
         }
 
@@ -265,7 +295,7 @@ extension AKSettings {
                 try session.setActive(true)
             }
         } catch let error as NSError {
-            AKLog("AKSettings Error: Cannot set AVAudioSession.setActive to true", error)
+            AKLog("Cannot set AVAudioSession.setActive to true \(error)", log: OSLog.settings, type: .error)
             throw error
         }
     }
@@ -282,11 +312,13 @@ extension AKSettings {
 
     @objc public static func computedSessionOptions() -> AVAudioSession.CategoryOptions {
 
-        var options: AVAudioSession.CategoryOptions = [.mixWithOthers]
+        var options: AVAudioSession.CategoryOptions = []
+
+        if AKSettings.mixWithOthers {
+          options = options.union(.mixWithOthers)
+        }
 
         if AKSettings.audioInputEnabled {
-
-            options = options.union(.mixWithOthers)
 
             #if !os(tvOS)
             if #available(iOS 10.0, *) {
@@ -320,6 +352,7 @@ extension AKSettings {
             if AKSettings.defaultToSpeaker {
                 options = options.union(.defaultToSpeaker)
             }
+
             #endif
         }
 
@@ -370,7 +403,7 @@ extension AKSettings {
                 return AVAudioSession.Category.playAndRecord.rawValue
             case .multiRoute:
                 return AVAudioSession.Category.multiRoute.rawValue
-            default :
+            default:
                 return AVAudioSession.Category.soloAmbient.rawValue
             }
         }
