@@ -12,7 +12,7 @@ open class AKMIDI {
     open var client = MIDIClientRef()
 
     /// MIDI Client Name
-    internal let clientName: CFString = "MIDI Client" as CFString
+    internal var clientName: CFString
 
     /// Array of MIDI In ports
     public var inputPorts = [MIDIUniqueID: MIDIPortRef]()
@@ -43,7 +43,10 @@ open class AKMIDI {
     // MARK: - Initialization
 
     /// Initialize the AKMIDI system
-    @objc public init() {
+    @objc public init(clientName: String = "MIDI Client") {
+        
+        self.clientName = clientName as CFString
+        
         AKLog("Initializing MIDI", log: OSLog.midi)
 
         #if os(iOS)
@@ -53,7 +56,7 @@ open class AKMIDI {
         #endif
 
         if client == 0 {
-            let result = MIDIClientCreateWithBlock(clientName, &client) {
+            let result = MIDIClientCreateWithBlock(self.clientName, &client) {
                 let messageID = $0.pointee.messageID
 
                 switch messageID {
